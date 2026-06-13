@@ -7,13 +7,13 @@ import { ProductModule } from './product/product.module';
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'user',
-      password: 'password',
-      database: 'sve_db',
+      host: process.env.DB_HOST ?? 'localhost',
+      port: parseInt(process.env.DB_PORT ?? '5432'),
+      username: process.env.DB_USER ?? 'user',
+      password: process.env.DB_PASSWORD ?? 'password',
+      database: process.env.DB_NAME ?? 'sve_db',
       autoLoadEntities: true,
-      synchronize: true, // This creates the tables automatically in dev mode
+      synchronize: true, // Creates tables automatically in dev mode
     }),
     LockModule,
     ProductModule,

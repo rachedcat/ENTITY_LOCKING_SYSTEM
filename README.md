@@ -18,14 +18,17 @@ A full-stack application implementing a **real-time entity locking system** to p
 
 ```
 SVE_Project/
-├── docker-compose.yml      # PostgreSQL + Redis services
-├── backend/                # NestJS REST API + WebSocket server (port 3000)
+├── docker-compose.yml      # All 4 services: postgres, redis, backend, frontend
+├── backend/
+│   ├── Dockerfile          # NestJS build & run
 │   └── src/
 │       ├── lock/           # Entity locking logic
 │       ├── product/        # Product management
 │       ├── audit/          # Audit / activity logs
 │       └── entities/       # TypeORM entities
-└── frontend/               # React app (port 5173)
+└── frontend/
+    ├── Dockerfile          # React build + nginx
+    ├── nginx.conf          # SPA routing config
     └── src/
 ```
 
@@ -33,15 +36,14 @@ SVE_Project/
 
 ## ✅ Prerequisites
 
-Make sure the following are installed on your machine:
+You only need **two things** installed:
 
-- [Node.js](https://nodejs.org/) **v18+**
-- [npm](https://www.npmjs.com/) **v9+**
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes Docker Compose)
+- [Git](https://git-scm.com/)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) ← **this is everything, no Node.js needed**
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quickstart (Docker — recommended)
 
 ### 1. Clone the repository
 
@@ -50,21 +52,70 @@ git clone <your-repo-url>
 cd SVE_Project
 ```
 
-### 2. Start the databases (PostgreSQL + Redis)
+### 2. Build and start all services
 
 ```bash
-docker compose up -d
+docker compose up --build
 ```
 
-This starts:
-- **PostgreSQL** on port `5432` — user: `user` | password: `password` | db: `sve_db`
-- **Redis** on port `6379`
+That single command will:
+1. Build the NestJS backend image
+2. Build the React frontend image
+3. Start PostgreSQL and wait for it to be healthy
+4. Start Redis and wait for it to be healthy
+5. Start the backend (connected to Postgres + Redis)
+6. Start the frontend served by nginx
 
-> Wait a few seconds for PostgreSQL to finish initializing before starting the backend.
+### 3. Open the app
+
+| Service | URL |
+|---|---|
+| 🌐 Frontend | http://localhost:5173 |
+| ⚙️ Backend API | http://localhost:3000 |
+| 🐘 PostgreSQL | localhost:5432 |
+| 🔴 Redis | localhost:6379 |
+
+### 4. Stop everything
+
+```bash
+docker compose down
+```
+
+To also **wipe the database** (full reset):
+
+```bash
+docker compose down -v
+```
 
 ---
 
-### 3. Start the Backend
+## 🔁 After code changes — rebuild
+
+If you make code changes and want to re-run:
+
+```bash
+docker compose up --build
+```
+
+To rebuild only one service (e.g. backend):
+
+```bash
+docker compose up --build backend
+```
+
+---
+
+## 🛠️ Local Development (optional — without Docker)
+
+If you prefer to run the app without Docker (you need Node.js v18+ installed):
+
+### 1. Start only the databases via Docker
+
+```bash
+docker compose up postgres redis -d
+```
+
+### 2. Start the backend
 
 ```bash
 cd backend
@@ -72,32 +123,13 @@ npm install
 npm run start:dev
 ```
 
-The API will be available at: **http://localhost:3000**
-
----
-
-### 4. Start the Frontend
-
-Open a **new terminal** tab/window:
+### 3. Start the frontend (new terminal)
 
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-
-The app will be available at: **http://localhost:5173**
-
----
-
-## 🌐 Ports Summary
-
-| Service | Address |
-|---|---|
-| Frontend | http://localhost:5173 |
-| Backend API | http://localhost:3000 |
-| PostgreSQL | localhost:5432 |
-| Redis | localhost:6379 |
 
 ---
 
@@ -112,32 +144,29 @@ The app will be available at: **http://localhost:5173**
 
 ---
 
-## 🛑 Stopping the Project
-
-```bash
-# Stop Docker services
-docker compose down
-
-# To also wipe the database volume (full reset)
-docker compose down -v
-```
-
----
-
 ## 🔧 Troubleshooting
 
-**Docker not starting?**
-Make sure Docker Desktop is running before executing `docker compose up -d`.
+**`docker compose up` fails on first run?**
+PostgreSQL needs ~5 seconds to initialize. The `healthcheck` in `docker-compose.yml` handles this automatically — the backend waits until Postgres is ready.
 
 **Port already in use?**
 ```bash
-lsof -i :3000
-lsof -i :5173
-lsof -i :5432
+lsof -i :3000   # backend
+lsof -i :5173   # frontend
+lsof -i :5432   # postgres
 ```
 
-**Database connection errors?**
-Wait ~5 seconds after Docker starts for PostgreSQL to be fully ready, then restart the backend.
+**Want to see live logs?**
+```bash
+docker compose logs -f backend
+docker compose logs -f frontend
+```
+
+**Want to reset everything from scratch?**
+```bash
+docker compose down -v
+docker compose up --build
+```
 
 ---
 

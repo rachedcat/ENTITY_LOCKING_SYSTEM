@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # ── Database ──────────────────────────────────────────────────
   postgres:
     image: postgres:latest
     container_name: sve_postgres
@@ -11,14 +12,57 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      # Change the mapping to the parent directory to fix the error
-      - postgres_data:/var/lib/postgresql
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d sve_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
+  # ── Cache ─────────────────────────────────────────────────────
   redis:
     image: redis:latest
     container_name: sve_redis
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Backend (NestJS) ──────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sve_backend
+    ports:
+      - "3000:3000"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: user
+      DB_PASSWORD: password
+      DB_NAME: sve_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ── Frontend (React + nginx) ───────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sve_frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:
