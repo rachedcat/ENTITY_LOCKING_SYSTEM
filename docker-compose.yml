@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: sve_postgres
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: sve_db
+    ports:
+      - "5432:5432"
+    volumes:
+      # Change the mapping to the parent directory to fix the error
+      - postgres_data:/var/lib/postgresql
+
+  redis:
+    image: redis:latest
+    container_name: sve_redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
